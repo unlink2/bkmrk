@@ -25,9 +25,12 @@ static struct argp_option options[] = {
     {"post", 'p', "POSTFIX", 0, "Postfix for bk output"},
     {"pre", 'b', "PREFIX", 0, "Prefix for bk output"},
     {"sep", 's', "SEPARATOR", 0, "File separator"},
+    {"rep", 'r', "REPLACE", 0,
+     "Replace argument. Arguments are inserted usign $0, $1 etc"},
     {0}};
 
-static error_t parse_opt(int key, char *arg, struct argp_state *state) {
+static error_t parse_opt(int key, char *arg,
+                         struct argp_state *state) { // NOLINT
   Config *cfg = state->input;
 
   switch (key) {
@@ -44,6 +47,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case 's':
     cfg->separator = arg[0];
     break;
+  case 'r':
+    rl_insert(&cfg->rl, arg);
+    break;
   case ARGP_KEY_ARG:
     /*
       if (state->arg_num >= 0) {
@@ -54,7 +60,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     */
 
     // all args are an emoji name, go find them in the map!
-    cfg->err |= bk_find(cfg->input, arg);
+    cfg->err |= bk_find(cfg->input, arg, &cfg->rl);
     break;
   case ARGP_KEY_END:
     if (state->arg_num < 1) {

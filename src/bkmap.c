@@ -63,7 +63,7 @@ Error bk_list(FILE *f) {
   return OK;
 }
 
-Error bk_find(FILE *f, char *name) {
+Error bk_find(FILE *f, char *name, ReplaceList *rl) {
   if (f == NULL) {
     return ERR_FILE_NOT_FOUND;
   }
@@ -77,8 +77,32 @@ Error bk_find(FILE *f, char *name) {
       return entry.err;
     }
     if (str_eq_raw(entry.name, name)) {
-      scl_log_output("%s" str_fmt "%s", config.pre, str_out(entry.value),
-                     config.post);
+      // print the entire string and replace %0 %1 etc with the corresponding
+      // index in the replace list
+      scl_log_output("%s", config.pre);
+
+      for (usize i = 0; i < entry.value.len; i++) {
+        char c = entry.value.raw[i];
+        char c2 = '\0';
+        if (i + 1 < entry.value.len) {
+          c2 = entry.value.raw[i + 1];
+        }
+        if (c != BK_VAR_PRE || !(c2 >= '0' && c2 <= '9')) {
+          // escape character
+          if (c2 == BK_VAR_PRE && c == BK_VAR_PRE) {
+            i++;
+          }
+          scl_putchar(c);
+        } else {
+          i++;
+          SclError err = SCL_OK;
+          Str s = str_init(&c2, 1);
+          usize index = str_to_i64(s, 10, &err);
+          scl_log_output("%s", rl_get(rl, index));
+        }
+      }
+
+      scl_log_output("%s", config.post);
       return OK;
     }
   }
@@ -86,6 +110,29 @@ Error bk_find(FILE *f, char *name) {
 
   return ERR_NOT_FOUND;
 }
+
+ReplaceList rl_init() {
+  ReplaceList rl;
+  scl_memset(&rl, 0, sizeof(rl));
+
+  return rl;
+}
+void rl_insert(ReplaceList *rl, char *str) {
+  if (rl->len > RL_MAX) {
+    scl_log_error("Replace list is full!\n");
+  }
+  rl->data[rl->len] = str;
+  rl->len++;
+}
+
+char *rl_get(ReplaceList *rl, usize index) {
+  if (index >= rl->len) {
+    return "(null)";
+  }
+  return rl->data[index];
+}
+
+void rl_free(ReplaceList *rl) {}
 
 FILE *bk_open_file() {
   const char *path = getenv(BK_FILE_ENV); // NOLINT

@@ -3,12 +3,15 @@
 
 #include <scl/sclalloc.h>
 #include <stdio.h>
+#include "bkmap.h"
 #include "error.h"
 
 typedef struct Config {
   const char *pre;
   const char *post;
   char separator;
+  ReplaceList rl;
+
   FILE *input;
   Error err;
 } Config;

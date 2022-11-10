@@ -6,7 +6,7 @@ Config config;
 SclAlloc alloc;
 
 Config config_init() {
-  Config c = {"", "\n", ':', bk_open_file(), OK};
+  Config c = {"", "\n", ':', rl_init(), bk_open_file(), OK};
   alloc = scl_alloc_init(malloc, free);
   return c;
 }
